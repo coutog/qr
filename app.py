@@ -55,14 +55,15 @@ if st.button("Generar QR", type="primary"):
         
         # Generar QR
         qr = segno.make(url_final)
-        buffer = io.StringIO()
         
-        # Lógica condicional: Guarda en SVG o EPS dependiendo de lo que hayas elegido
+        # Lógica condicional: Separamos la memoria según el formato
         if "SVG" in formato:
+            buffer = io.BytesIO()  # El SVG necesita memoria en Bytes
             qr.save(buffer, kind='svg', scale=10)
             file_ext = "svg"
             mime_type = "image/svg+xml"
         else:
+            buffer = io.StringIO() # El EPS necesita memoria en Texto
             qr.save(buffer, kind='eps', scale=10)
             file_ext = "eps"
             mime_type = "application/postscript"
