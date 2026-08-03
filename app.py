@@ -3,9 +3,9 @@ import urllib.parse
 import segno
 import io
 
-st.set_page_config(page_title="Generador QR Coto", page_icon="🛒")
+st.set_page_config(page_title="Generador QR", page_icon="🛒")
 
-st.title("Generador de QR - Coto")
+st.title("Generador de QR ")
 st.write("Genera el código QR en formato EPS con los UTMs configurados automáticamente.")
 
 # Opciones de source
