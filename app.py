@@ -37,16 +37,15 @@ if st.button("Generar QR", type="primary"):
         
         st.success(f"**URL configurada:** {url_final}")
         
-        # 2. Generar QR y guardar en memoria
+        # 2. Generar QR y guardar en memoria usando StringIO para EPS (formato de texto)
         qr = segno.make(url_final)
-        buffer = io.BytesIO()
+        buffer = io.StringIO()
         qr.save(buffer, kind='eps')
-        buffer.seek(0)
         
-        # 3. Botón de descarga
+        # 3. Botón de descarga (convertimos el contenido del buffer de texto)
         st.download_button(
             label="⬇️ Descargar QR en .EPS",
-            data=buffer,
+            data=buffer.getvalue(),
             file_name=f"QR_Coto_{source_final.strip()}.eps",
             mime="application/postscript"
         )
