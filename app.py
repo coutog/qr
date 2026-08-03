@@ -12,7 +12,7 @@ st.write("Genera el código QR en formato EPS con los UTMs configurados automát
 opciones_source = ["tv", "flyer", "luzu", "olga", "Wanda", "revista", "camion", "Monitores", "Otro"]
 
 # Formulario
-source = st.selectbox("Selecciona el utm_source:", opciones_source)
+source = st.selectbox("Selecciona en dónde vas a utilizar el QR:", opciones_source)
 
 if source == "Otro":
     source_final = st.text_input("Ingresa el source personalizado:")
