@@ -1,12 +1,12 @@
 import streamlit as st
 import urllib.parse
-import pyqrcode
+import segno
 import io
 
 st.set_page_config(page_title="Generador QR", page_icon="🛒")
 
 st.title("Generador de QR")
-st.write("Genera el código QR en formato EPS (Vectores de relleno, ideal para Illustrator).")
+st.write("Genera el código QR con los UTMs configurados automáticamente.")
 
 # 1. Campo para la URL / Ruta
 st.subheader("1. Destino de la URL")
@@ -28,17 +28,22 @@ else:
 
 st.caption("Valores fijos aplicados: Medium (qr) | Campaign (ofertas)")
 
+# 3. Formato de Exportación
+st.subheader("3. Formato de descarga")
+# Agregamos un selector (radio button) para que elijas el formato al momento de descargar
+formato = st.radio("Elige el formato del vector:", ["SVG (Recomendado para Illustrator)", "EPS"])
+
 # Generación
 if st.button("Generar QR", type="primary"):
     if not source_final.strip():
         st.error("Por favor, ingresa un source válido.")
     else:
-        # 1. Construir URL base limpiando las barras
+        # Construir URL base limpiando las barras
         dominio = "https://www.coto.com.ar/"
         ruta_limpia = ruta_url.strip().lstrip("/")
         base_url = f"{dominio}{ruta_limpia}"
         
-        # 2. Agregar parámetros UTM
+        # Agregar parámetros UTM
         params = {
             "utm_source": source_final.strip(),
             "utm_medium": "qr",
@@ -48,18 +53,24 @@ if st.button("Generar QR", type="primary"):
         
         st.success(f"**URL configurada:** {url_final}")
         
-        # 3. Generar QR con pyqrcode y guardar en memoria
-        # Usamos error='L' (Low) que hace el QR más limpio y con menos densidad de cuadraditos
-        qr = pyqrcode.create(url_final, error='L')
+        # Generar QR
+        qr = segno.make(url_final)
         buffer = io.StringIO()
         
-        # Guardamos como EPS con una escala estándar base
-        qr.eps(buffer, scale=10)
+        # Lógica condicional: Guarda en SVG o EPS dependiendo de lo que hayas elegido
+        if "SVG" in formato:
+            qr.save(buffer, kind='svg', scale=10)
+            file_ext = "svg"
+            mime_type = "image/svg+xml"
+        else:
+            qr.save(buffer, kind='eps', scale=10)
+            file_ext = "eps"
+            mime_type = "application/postscript"
         
-        # 4. Botón de descarga
+        # Botón de descarga dinámico
         st.download_button(
-            label="⬇️ Descargar QR en .EPS",
+            label=f"⬇️ Descargar QR en .{file_ext.upper()}",
             data=buffer.getvalue(),
-            file_name=f"QR_Coto_{source_final.strip()}.eps",
-            mime="application/postscript"
+            file_name=f"QR_Coto_{source_final.strip()}.{file_ext}",
+            mime=mime_type
         )
