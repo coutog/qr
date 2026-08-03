@@ -7,53 +7,79 @@ import io
 st.set_page_config(page_title="Generador QR", page_icon="🛒")
 
 st.title("Generador de QR")
-st.write("Genera el código QR en un formato SVG de trazado único, 100% compatible con Illustrator.")
+st.write("Genera códigos QR vectoriales (100% compatibles con Illustrator) con opción de dominio personalizado y UTMs.")
 
-# 1. Campo para la URL / Ruta
-st.subheader("1. Destino de la URL")
-ruta_url = st.text_input(
-    "¿Qué sección vas a usar? (Se añadirá a https://www.coto.com.ar/)", 
-    placeholder="Ej: electro / ofertas / (o déjalo en blanco)"
+# 1. Selección de Dominio Base
+st.subheader("1. Dominio Base")
+tipo_dominio = st.radio(
+    "Selecciona el origen del dominio:", 
+    ["Coto (https://www.coto.com.ar/)", "Otro dominio personalizado"]
 )
 
-# 2. Origen (UTMs)
-st.subheader("2. Configuración UTM")
-opciones_source = ["tv", "flyer", "luzu", "olga", "Wanda", "revista", "camion", "Monitores", "Otro"]
-
-source = st.selectbox("Selecciona en dónde vas a utilizar el QR:", opciones_source)
-
-if source == "Otro":
-    source_final = st.text_input("Ingresa el source personalizado:")
+if "Coto" in tipo_dominio:
+    dominio_base = "https://www.coto.com.ar/"
+    ruta_url = st.text_input(
+        "¿Qué sección vas a usar? (Se añadirá a https://www.coto.com.ar/)", 
+        placeholder="Ej: electro / ofertas / (o déjalo en blanco)"
+    )
+    ruta_limpia = ruta_url.strip().lstrip("/")
+    url_base = f"{dominio_base}{ruta_limpia}"
 else:
-    source_final = source
+    url_base = st.text_input(
+        "Ingresa la URL completa del otro dominio:", 
+        placeholder="Ej: https://www.midominio.com/landing"
+    )
 
-st.caption("Valores fijos aplicados: Medium (qr) | Campaign (ofertas)")
+# 2. Configuración UTM (Opcional)
+st.subheader("2. Configuración UTM")
+agregar_utms = st.checkbox("Incluir parámetros UTM (source, medium=qr, campaign=ofertas)", value=True)
+
+source_final = ""
+if agregar_utms:
+    opciones_source = ["tv", "flyer", "luzu", "olga", "Wanda", "revista", "camion", "Monitores", "Otro"]
+    source = st.selectbox("Selecciona en dónde vas a utilizar el QR:", opciones_source)
+
+    if source == "Otro":
+        source_final = st.text_input("Ingresa el source personalizado:")
+    else:
+        source_final = source
+
+    st.caption("Valores fijos aplicados: Medium (qr) | Campaign (ofertas)")
 
 # Generación
 if st.button("Generar QR", type="primary"):
-    if not source_final.strip():
-        st.error("Por favor, ingresa un source válido.")
+    # Validaciones básicas
+    if not url_base.strip() or url_base.strip() == "https://www.coto.com.ar/":
+        if "Coto" in tipo_dominio and not ruta_url.strip():
+            # Si es coto y la ruta está vacía, igual es válido (es la home https://www.coto.com.ar/)
+            pass
+        elif "Otro" in tipo_dominio and not url_base.strip():
+            st.error("Por favor, ingresa una URL válida para el dominio personalizado.")
+            st.stop()
+
+    if agregar_utms and not source_final.strip():
+        st.error("Por favor, ingresa o selecciona un source válido.")
     else:
-        # Construir URL base
-        dominio = "https://www.coto.com.ar/"
-        ruta_limpia = ruta_url.strip().lstrip("/")
-        base_url = f"{dominio}{ruta_limpia}"
-        
-        # Agregar parámetros UTM
-        params = {
-            "utm_source": source_final.strip(),
-            "utm_medium": "qr",
-            "utm_campaign": "ofertas"
-        }
-        url_final = f"{base_url}?{urllib.parse.urlencode(params)}"
-        
+        # Construir URL final con o sin UTMs
+        if agregar_utms and source_final.strip():
+            params = {
+                "utm_source": source_final.strip(),
+                "utm_medium": "qr",
+                "utm_campaign": "ofertas"
+            }
+            separator = "&" if "?" in url_base else "?"
+            url_final = f"{url_base}{separator}{urllib.parse.urlencode(params)}"
+            sufijo_archivo = source_final.strip()
+        else:
+            url_final = url_base
+            sufijo_archivo = "sin_utm"
+
         st.success(f"**URL configurada:** {url_final}")
         
-        # Generar QR usando SvgPathImage (Crea un único trazado de relleno)
+        # Generar QR vectorial en SVG (A prueba de fallos en Illustrator)
         factory = qrcode.image.svg.SvgPathImage
         img = qrcode.make(url_final, image_factory=factory, box_size=10, border=4)
         
-        # Guardar en memoria
         buffer = io.BytesIO()
         img.save(buffer)
         
@@ -61,6 +87,6 @@ if st.button("Generar QR", type="primary"):
         st.download_button(
             label="⬇️ Descargar QR en .SVG (Trazado Vectorial)",
             data=buffer.getvalue(),
-            file_name=f"QR_Coto_{source_final.strip()}.svg",
+            file_name=f"QR_{sufijo_archivo}.svg",
             mime="image/svg+xml"
         )
